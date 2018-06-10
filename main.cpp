@@ -6,7 +6,7 @@
 DigitalOut led1(PH_0);
 DigitalOut led2(PH_1);
 
-#define POLLING_TASK_INTERVAL_MSECS_MAX1270 100
+#define POLLING_TASK_INTERVAL_MSECS_MAX1270 20
 #define POLLING_TASK_INTERVAL_MSECS_IO 500
 
 static Thread s_thread_polling_task_max1270;
@@ -18,30 +18,22 @@ static EventQueue s_eq_polling_task_io;
 static Timer s_main_timer;
 
 static Serial s_serialgw(PA_9, PA_10, 921600);
-static DigitalOut s_max1270_on(PC_0, false);
+static DigitalOut s_max1270_on(PC_0, true);    // collegato a /SHUTDOWN
 
 static std::vector<DigitalOut*> s_douts;
 static std::vector<DigitalIn*> s_dins;
+
+static SPI _spi(PB_15, PB_14, PB_13);
+
+static Max1270 _max1270(_spi, PC_1);
 
 static void initHardware()
 {
     s_serialgw.set_flow_control(Serial::Flow::RTSCTS, PA_12, PA_11);
 
-    s_max1270_on.write(true);
-
-    wait_ms(100);
-
-    initMax1270_no_hw_cs(PB_15, PB_14, PB_13, PC_1);
-
     // range 10V, bipolar
-    ChannelConfigurationMap[0] = {true, true};
-    // ChannelConfigurationMap[1] = {true, true};
-    // ChannelConfigurationMap[2] = {true, true};
-    // ChannelConfigurationMap[3] = {true, true};
-    // ChannelConfigurationMap[4] = {true, true};
-    // ChannelConfigurationMap[5] = {true, true};
-    // ChannelConfigurationMap[6] = {true, true};
-    // ChannelConfigurationMap[7] = {true, true};
+    _max1270.setChannelConfiguration(0, true, true);
+    _max1270.setChannelConfiguration(1, true, true);
 
     s_douts.push_back(new DigitalOut(PA_4));
     s_douts.push_back(new DigitalOut(PA_5));
@@ -60,9 +52,9 @@ void event_proc_polling_task_max1270()
 {
     led1.write(!led1.read());
 
-    for (Max1270ChannelConfigurationMap::iterator it = ChannelConfigurationMap.begin(); it != ChannelConfigurationMap.end(); ++it)
+    for (auto it = _max1270.getChannelConfiguration().begin(); it != _max1270.getChannelConfiguration().end(); ++it)
     {
-        s_serialgw.printf("{TIMEPLOT|DATA|MAX1270-CH-%d|T|%.3f}\n", it->first, read_max1270_volts(it->first));
+        s_serialgw.printf("{TIMEPLOT|DATA|MAX1270-CH-%d|T|%.3f}\n", (*it).first, _max1270.read_volts((*it).first));
     }
 }
 
