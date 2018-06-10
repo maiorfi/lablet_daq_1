@@ -13,5 +13,8 @@ typedef std::map<uint8_t, Max1270ChannelConfiguration> Max1270ChannelConfigurati
 extern Max1270ChannelConfigurationMap ChannelConfigurationMap;
 
 void initMax1270(PinName mosi, PinName miso, PinName sclk, PinName ssel);
+void initMax1270_no_hw_cs(PinName mosi, PinName miso, PinName sclk, PinName ssel);
+
 void deinitMax1270();
+
 float read_max1270_volts(uint8_t chan);

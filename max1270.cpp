@@ -1,8 +1,29 @@
 #include "max1270.h"
 
 static SPI* spi_max1270;
+static DigitalOut* spi_max1270_cs;
 
 Max1270ChannelConfigurationMap ChannelConfigurationMap;
+
+void initMax1270(PinName mosi, PinName miso, PinName sclk, PinName ssel)
+{
+    spi_max1270=new SPI(mosi, miso, sclk, ssel);
+    spi_max1270->frequency(5000000); //5MHz Max
+}
+
+void initMax1270_no_hw_cs(PinName mosi, PinName miso, PinName sclk, PinName ssel)
+{
+    spi_max1270=new SPI(mosi, miso, sclk);
+    spi_max1270->frequency(5000000); //5MHz Max
+
+    spi_max1270_cs=new DigitalOut(ssel, true);
+}
+
+void deinitMax1270()
+{
+    delete spi_max1270_cs;
+    delete spi_max1270;
+}
 
 static uint16_t read_max1270(uint8_t chan, bool range_10V, bool bipol)
 {
@@ -14,12 +35,16 @@ static uint16_t read_max1270(uint8_t chan, bool range_10V, bool bipol)
 
     spi_max1270->format(8, 0); // 8 data bits, CPOL0, and CPHA0 (datasheet Digital Interface)
 
+    if(spi_max1270_cs) spi_max1270_cs->write(false);
+
     spi_max1270->write(cword);
 
     wait_us(15); //15us
 
     spi_max1270->format(16, 0);
     uint16_t result = spi_max1270->write(0);
+
+    if(spi_max1270_cs) spi_max1270_cs->write(true);
 
     return result >> 4;
 }
@@ -54,17 +79,6 @@ static float read_max1270_volts(uint8_t chan, bool range_10V, bool bipol)
     }
 
     return volts;
-}
-
-void initMax1270(PinName mosi, PinName miso, PinName sclk, PinName ssel)
-{
-    spi_max1270=new SPI(mosi, miso, sclk, ssel);
-    spi_max1270->frequency(5000000); //5MHz Max
-}
-
-void deinitMax1270()
-{
-    delete spi_max1270;
 }
 
 float read_max1270_volts(uint8_t chan)

@@ -1,3 +1,5 @@
 BUILD/
 *.pyc
 mbed_settings.py
+meguno.mlx
+.vscode/
